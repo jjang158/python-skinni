@@ -3,6 +3,7 @@ version: '3.9'
 services:
   db:
     image: postgres:13
+    restart: always
     ports:
       - "5432:5432" 
     environment:
@@ -10,7 +11,7 @@ services:
       POSTGRES_USER: intel_user
       POSTGRES_PASSWORD: 1234
     volumes:
-      - ./db:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
 
   web:
     build:

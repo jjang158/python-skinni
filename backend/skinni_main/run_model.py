@@ -19,7 +19,8 @@ from torchvision import transforms
 import torch.nn as nn
 from torchvision import models
 import base64
-import io
+import io, os
+from django.conf import settings
 
 # 상수 정의
 FACEPART_MAP = {
@@ -188,7 +189,10 @@ class SkinAnalysisModel(nn.Module):
         }
 
 class SkinAnalyzer:
-    def __init__(self, model_path='skin_model.pth'):
+    def __init__(self, model_path=None):
+        if model_path is None:
+            model_path = os.path.join(settings.BASE_DIR, 'skinni_main', 'skin_model.pth')
+        print(f"model_path:{model_path}")
         self.device = torch.device('cpu')
         
         # 모델 로드
@@ -289,19 +293,28 @@ class SkinAnalyzer:
                         pore_min, pore_max = 235.0, 1840.0
                         normalized_avg = (avg_value - pore_min) / (pore_max - pore_min)
                         averages[param_name] = 100 - (normalized_avg * 100)
+                    elif param_name == 'wrinkle':
+                        # wrinkle도 값이 낮을수록 좋음 (주름이니까)
+                        avg_value = sum(values) / len(values)
+                        # 정규화 범위 기준으로 백분율 계산 후 역전
+                        # l_perocular, r_perocular 만 해당
+                        wrinkle_min = (9.9877 + 10.415) / 2
+                        wrinkle_max = (49.13 + 45.682) / 2
+                        normalized_avg = (avg_value - wrinkle_min) / (wrinkle_max - wrinkle_min)
+                        averages[param_name] = 100 - (normalized_avg * 100)
                     else:
-                        # 다른 파라미터들은 정상적으로
+                        # moisture, elasticity는 정상적으로 (높을수록 좋음)
                         averages[param_name] = sum(values) / len(values)
                 else:
                     averages[param_name] = 0.0
-            
+
             return {
                 'success': True,
                 'parts': parts_analysis,
                 'averages': averages,
                 'model_version': '최종'
             }
-            
+
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
@@ -311,10 +324,10 @@ _analyzer = None
 def analyze_skin_image(base64_image):
     """
     피부 분석 API 함수
-    
+
     Args:
         base64_image (str): base64 인코딩된 이미지 문자열
-    
+
     Returns:
         dict: 6개 부위별 파라미터 + 4개 파라미터 평균값 (Q0/Ra 지표 기반)
     """

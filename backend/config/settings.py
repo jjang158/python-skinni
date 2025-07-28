@@ -83,6 +83,9 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_PASSWORD', '1234'),
         'HOST': os.environ.get('DB_HOST', 'db'),
         'PORT': '5432',
+        'OPTIONS': {
+            'options': '-c search_path=skinni'
+        }
     }
 }
 
