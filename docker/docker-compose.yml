@@ -29,6 +29,3 @@ services:
       - DB_NAME=skinni_db
       - DB_USER=intel_user
       - DB_PASSWORD=1234
-
-volumes:
-  pgdata:
