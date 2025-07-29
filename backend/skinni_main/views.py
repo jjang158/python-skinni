@@ -3,7 +3,8 @@ from rest_framework.response import Response
 from django.db.models import F
 from .models import ProductMgmt
 from .serializers import ProductMgmtSerializer, RecommendInputSerializer
-from .run_model import get_model_info, analyze_skin_image
+from .run_model import get_model_info, SkinAnalyzer
+import os
 
 # 피부 분석 API
 class SkinAnalysisView(APIView):
@@ -14,14 +15,23 @@ class SkinAnalysisView(APIView):
             print("피부 분석 모델 테스트")
             info = get_model_info()
             print(f"모델: {info['model_type']}")
-            print(f"버전: {info['model_version']}")
-            print(f"분석 부위: {info['total_parts']}개")
-            print(f"특화: {info['specialization']}")
             
             # 예시 base64 이미지 데이터
 #             base64_image = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxAAPwCdABmX/9k="
 #             result = analyze_skin_image(base64_image)
-            result = analyze_skin_image(request.data.get('file'))
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            model_path = os.path.join(current_dir, 'skin_model.pth')
+            
+            if not os.path.exists(model_path):
+                raise FileNotFoundError(f"모델 없음: {model_path}")
+            
+            print(f"모델 있음: {model_path}")
+            analyzer = SkinAnalyzer(model_path)
+            result = analyzer.analyze_image(request.data.get('file'))
+            
+            print(f"버전: {info['model_version']}")
+            print(f"분석 부위: {info['total_parts']}개")
+            print(f"특화: {info['specialization']}")
             
             if result['success']:
                 print(f"\n모델 버전: {result['model_version']}")
